@@ -12,22 +12,128 @@ Requires any modern terminal that has ANSI color and emoticon support.
  * Live configuration changes.
  * Style a log event according to log priority level.
  * Style and decorate any field with color, styles and emoticons.
+ * Highlight parameters in parameterized log events.
  
 ## Usage
 
-TODO
+Simply add the dependency to your project. 
+
+```xml
+<dependency>
+    <groupId>com.sshtools</groupId>
+    <artifactId>slf4j-tty</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+</dependency>
+```
 
 ## Configuration
 
-TODO
+Configuration is achieved using INI format files. The library comes with a pre-defined default, which you can override any and all properties using a resource in your project. 
+
+Further configuration may be achieved by the user by creating either a system-wide or user specific file in the usual location for configuration the operating system in use.
+
+### Defaults
+
+The defaults used are as follows. 
+
+```
+;
+; Log
+;
+
+[log]
+	enabled = TRUE
+	default-level = INFO
+	output = SYS_ERR
+	log-file = 
+	
+[output]
+	style-as-level = TRUE
+	gap  = 1
+	ellipsis = …
+	width = 0
+	fallback-width = 132
+	parameter-style = @{bold ${parameter}}
+	layout = level, short-name, message, thread-name, date-time 
+		
+[fields]
+	[date-time]
+		alignment = RIGHT
+		type = DATE_TIME
+		format = SHORT
+		width = 23
+		style = @{faint ${date-time}}
+	
+	[level]
+		alignment = LEFT
+		width = 9
+		style = [${level}]
+	
+	[thread-id]
+		alignment = LEFT
+		width = 10
+		style = ${thread-id}
+	
+	[thread-name]
+		alignment = LEFT
+		width = 15
+		style = [${thread-name}]
+	
+	[message]
+		alignment = LEFT
+		width = 0
+		style =${message}
+	
+	[markers]
+		alignment = LEFT
+		width = 0
+		style = ${markers}
+	
+	[name]
+		alignment = LEFT
+		width = 0
+		style = ${name}
+	
+	[short-name]
+		alignment = LEFT
+		width = 15
+		style = @{bold ${short-name}}
+		
+
+[levels]
+	name = Levels
+	description = Configuration for each of the levels
+	
+	[TRACE]
+		text = 🔍 TRACE
+		style = @{faint ${text}}
+		
+	[DEBUG]
+		text = 🐛 DEBUG
+		style = @{italic,fg:cyan ${text}}
+		
+	[INFO]
+		text = ℹ️ INFO
+		style = @{fg:blue ${text}}
+			
+	[WARN]
+		text = ⚠️ WARN
+		style = @{fg:yellow ${text}}
+		
+	[ERROR] 
+		text = ⛔ ERROR
+		style = @{bold,fg:red ${text}}
+		
+```
 
 ### Styles Expressions
 
-```
-```
+SLF4J-TTY uses Jline3's [StyleExpression](https://www.javadoc.io/doc/org.jline/jline/3.23.0/org/jline/style/StyleExpression.html) for it's `style` configuration items. With these, you can style the text for the item using any common support ANSI terminal sequence.
 
-#### Styles
+#### Selection Of Styles
 
+ * fg
+ * bg
  * blink
  * bold
  * conceal
