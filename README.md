@@ -20,15 +20,17 @@ Requires any modern terminal that has ANSI color and emoticon support.
  
 ## Usage
 
-Simply add the dependency to your project. 
+SLF4J-TTY is in Maven central, so simply add the dependency to your project. 
 
 ```xml
 <dependency>
     <groupId>com.sshtools</groupId>
     <artifactId>slf4j-tty</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1</version>
 </dependency>
 ```
+
+_See badge above for version available on Maven Central. Snapshot versions are in the [Sonatype OSS Snapshot Repository](https://oss.sonatype.org/content/repositories/snapshots/)._
 
 ## Configuration
 
@@ -40,7 +42,7 @@ Further configuration may be achieved by the user by creating either a system-wi
 
 The defaults used are as follows. 
 
-```
+```ini
 ;
 ; Log
 ;
