@@ -1,5 +1,9 @@
 # SLF4J TTY
 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.sshtools/slf4j-tty/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.sshtools/slf4j-tty)
+[![javadoc](https://javadoc.io/badge2/com.sshtools/slf4j-tty/javadoc.svg)](https://javadoc.io/doc/com.sshtools/slf4j-tty)
+![JPMS](https://img.shields.io/badge/JPMS-com.sshtools.slf4jtty-purple) 
+
 A colourful logger provider for SLF4J for making your console log output pretty.
 
 *Note this is not intended for logging to a file, although there are options to do so. This provider is focused on console log output'*
