@@ -18,6 +18,14 @@ Requires any modern terminal that has ANSI color and emoticon support.
  * Style and decorate any field with color, styles and emoticons.
  * Highlight parameters in parameterized log events.
  
+## Design
+
+SLF4J-TTY kind of steps outside of SLF4Js intended design a bit. Usually, any particular provider would actually be an adapter to a separate (existing) logging framework, for example Log4J.
+
+However, given SLF4J has become the de-facto standard, and all the projects I intend to use SLF4J-TTY with use it, I saw little point right now in implementing an entirely new logging framework.
+
+So instead, SLF4J-TTY is more basically more like `slf4j-simple`, which is the simple provider that implements the SLF4J API directly. The code in fact was based on this provider.
+ 
 ## Usage
 
 SLF4J-TTY is in Maven central, so simply add the dependency to your project. 
