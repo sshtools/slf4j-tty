@@ -63,44 +63,44 @@ The defaults used are as follows.
 	layout = level, short-name, message, thread-name, date-time 
 		
 [fields]
-	[date-time]
+	[fields.date-time]
 		alignment = RIGHT
 		type = DATE_TIME
 		format = SHORT
 		width = 23
 		style = @{faint ${date-time}}
 	
-	[level]
+	[fields.level]
 		alignment = LEFT
 		width = 9
 		style = [${level}]
 	
-	[thread-id]
+	[fields.thread-id]
 		alignment = LEFT
 		width = 10
 		style = ${thread-id}
 	
-	[thread-name]
+	[fields.thread-name]
 		alignment = LEFT
 		width = 15
 		style = [${thread-name}]
 	
-	[message]
+	[fields.message]
 		alignment = LEFT
 		width = 0
 		style =${message}
 	
-	[markers]
+	[fields.markers]
 		alignment = LEFT
 		width = 0
 		style = ${markers}
 	
-	[name]
+	[fields.name]
 		alignment = LEFT
 		width = 0
 		style = ${name}
 	
-	[short-name]
+	[fields.short-name]
 		alignment = LEFT
 		width = 15
 		style = @{bold ${short-name}}
@@ -110,23 +110,23 @@ The defaults used are as follows.
 	name = Levels
 	description = Configuration for each of the levels
 	
-	[TRACE]
+	[levels.TRACE]
 		text = 🔍 TRACE
 		style = @{faint ${text}}
 		
-	[DEBUG]
+	[levels.DEBUG]
 		text = 🐛 DEBUG
 		style = @{italic,fg:cyan ${text}}
 		
-	[INFO]
+	[levels.INFO]
 		text = ℹ️ INFO
 		style = @{fg:blue ${text}}
 			
-	[WARN]
+	[levels.WARN]
 		text = ⚠️ WARN
 		style = @{fg:yellow ${text}}
 		
-	[ERROR] 
+	[levels.ERROR] 
 		text = ⛔ ERROR
 		style = @{bold,fg:red ${text}}
 		
