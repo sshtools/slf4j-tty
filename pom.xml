@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.sshtools</groupId>
 	<artifactId>slf4j-tty</artifactId>
-	<version>0.0.2</version>
+	<version>0.0.3</version>
 	<name>SLF4J TTY</name>
 	<description>An SLF4J log provider that directly implements the SLF4J API
 		and provides logging output suitable for console output (i.e. not to a

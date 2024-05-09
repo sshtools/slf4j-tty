@@ -10,6 +10,8 @@ A colourful logger provider for SLF4J for making your console log output pretty.
 
 Requires any modern terminal that has ANSI color and emoticon support.
 
+![SLF4J-TTY](src/web/screenshot.png)
+
 ## Features
 
  * Flexible configuration based on INI files.
@@ -45,7 +47,6 @@ So instead, SLF4J-TTY is more basically more like `slf4j-simple`, which is the s
 This is the very first alpha release. There are a few bugs, and incompete areas.
  
  * No way to load defaults from classpath resource.
- * Outer formatting (e.g. brackets around level) should be taken into account when padding or trimming content. 
  * Live configuration reloading not implemented. 
 
 ## Configuration

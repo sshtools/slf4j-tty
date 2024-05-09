@@ -59,6 +59,7 @@ public class TtyLoggerConfiguration {
     OutputChoice outputChoice = null;
 
     final Map<String, String> fieldStyles = new HashMap<>();
+    final Map<String, String> fieldDecoration = new HashMap<>();
     final Map<String, Alignment> fieldAlignment = new HashMap<>();
     final Map<Level, String> levelStyles = new HashMap<>();
     final Map<Level, String> levelText = new HashMap<>();
@@ -107,6 +108,7 @@ public class TtyLoggerConfiguration {
         
         Section fields = config.section("fields");
         for(Section fieldSection : fields.allSections()) {
+        	fieldDecoration.put(fieldSection.key(), fieldSection.get("decoration"));
         	fieldStyles.put(fieldSection.key(), fieldSection.get("style"));
         	fieldWidth.put(fieldSection.key(), fieldSection.getInt("width"));
         	fieldAlignment.put(fieldSection.key(), fieldSection.getEnum(Alignment.class, "alignment"));

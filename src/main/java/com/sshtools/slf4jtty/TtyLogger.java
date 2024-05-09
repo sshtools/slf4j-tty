@@ -22,6 +22,8 @@ import org.slf4j.helpers.LegacyAbstractLogger;
 import org.slf4j.helpers.NormalizedParameters;
 import org.slf4j.spi.LocationAwareLogger;
 
+import com.sshtools.slf4jtty.TtyLoggerConfiguration.Alignment;
+
 /**
  * <p>
  * Simple implementation of {@link Logger} that sends all enabled log messages,
@@ -361,7 +363,10 @@ public class TtyLogger extends LegacyAbstractLogger {
 		}
 		
 		var valueStyle = loggerConfiguration.fieldStyles.get(field);
-
+		var decoration = loggerConfiguration.fieldDecoration.get(field);
+		var decorationChars = WCWidth.mk_wcswidth(decoration.replace("${" + field + "}", ""));
+		var availableWidthWidth = Math.max(1, fieldWidth - decorationChars);
+		
 		if(defaultStyle != null) {
 			valueStyle = defaultStyle.replace("${text}", valueStyle);
 		}
@@ -373,30 +378,35 @@ public class TtyLogger extends LegacyAbstractLogger {
 		
 		var attrs = new AttributedStringBuilder();
 		var sex = new RecursiveStyleExpression();
-		sex.setMaxLength(fieldWidth);
+		sex.setMaxLength(availableWidthWidth);
 		sex.setEllipsis(loggerConfiguration.ellipsis);
 		sex.evaluate(attrs, ftext);
-		if(attrs.length() < fieldWidth) {
-			var amount = fieldWidth - attrs.length();
-			switch(loggerConfiguration.fieldAlignment.get(field)) {
-			case LEFT:
+		var styledTextLength = WCWidth.mk_wcswidth(attrs.toString());
+		if(styledTextLength < availableWidthWidth) {
+			var amount = availableWidthWidth - styledTextLength;
+			var align = loggerConfiguration.fieldAlignment.get(field);
+			if(align == Alignment.LEFT) {
 				for(int i = 0 ; i < amount; i++) {
 					attrs.append(' ');
 				}
-				break;
-			case RIGHT:
+			}
+			else {
+				if(align == Alignment.CENTER) {
+					amount /= 2;
+				}
+				var indented = new AttributedStringBuilder();
 				for(int i = 0 ; i < amount; i++) {
-					buf.append(' ');
+					indented.append(' ');
 				}
-				break;
-			case CENTER:
-				for(int i = 0 ; i < amount / 2; i++) {
-					buf.append(' ');
-				}
-				break;
+				indented.append(attrs);
+				attrs = indented;
 			}
 		}
-		buf.append(attrs.toAnsi(loggerConfiguration.forceANSI ? null : loggerConfiguration.terminal()));
+		
+		var decorated = new AttributedStringBuilder();
+		var trm = loggerConfiguration.forceANSI ? null : loggerConfiguration.terminal();
+		decorated.appendAnsi(decoration.replace("${" + field + "}", attrs.toAnsi(trm)));
+		buf.append(decorated.toAnsi(trm));
 		
 		fieldIdx.incrementAndGet();
 	}
