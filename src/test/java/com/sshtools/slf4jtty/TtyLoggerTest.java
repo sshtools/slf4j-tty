@@ -48,7 +48,7 @@ public class TtyLoggerTest {
 		var logger = lo.logger("TEST");
 		logger.info("Basic Test 1");
 		Assertions.assertEquals(
-				ESC+ "[34m[ℹ️ INFO]" + ESC+ "[0m " + ESC + "[34;1mTEST           " + ESC + "[0m " + ESC + "[34mBasic Test 1                                                                                              " + ESC + "[0m\n",
+				"[34m[ℹ️ INFO] [0m [34;1mTEST[22m           [0m [34mBasic Test 1                                                                                             [0m\n",
 				lo.bufferText());
 	}
 	
@@ -60,7 +60,7 @@ public class TtyLoggerTest {
 		System.out.println(lo.bufferText());
 		
 		Assertions.assertEquals(
-				"[ℹ️ INFO] TEST            Basic Test 1                                          \n",
+				"[34m[ℹ️ INFO] [0m [34;1mTEST[22m           [0m [34mA Parameterised test. Parm 1: [1mValue 1[22m, Parm2: [1mValue 2[22m, Other                                             [0m\n",
 				lo.bufferText());
 	}
 
