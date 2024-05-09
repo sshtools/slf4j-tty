@@ -20,7 +20,6 @@ public class TtyLoggerFactory implements ILoggerFactory {
 
     public TtyLoggerFactory() {
         loggerMap = new ConcurrentHashMap<>();
-        TtyLogger.lazyInit();
     }
 
     /**
@@ -31,7 +30,7 @@ public class TtyLoggerFactory implements ILoggerFactory {
         if (simpleLogger != null) {
             return simpleLogger;
         } else {
-            Logger newInstance = new TtyLogger(name);
+            Logger newInstance = new TtyLogger(name, TtyLoggerConfiguration.get());
             Logger oldInstance = loggerMap.putIfAbsent(name, newInstance);
             return oldInstance == null ? newInstance : oldInstance;
         }

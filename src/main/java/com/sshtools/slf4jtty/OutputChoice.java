@@ -2,6 +2,8 @@ package com.sshtools.slf4jtty;
 
 import java.io.PrintStream;
 
+import org.jline.terminal.Terminal;
+
 /**
  * This class encapsulates the user's choice of output target.
  * <p>
@@ -13,7 +15,7 @@ import java.io.PrintStream;
 public class OutputChoice {
 
     public enum OutputChoiceType {
-        SYS_OUT, CACHED_SYS_OUT, SYS_ERR, CACHED_SYS_ERR, FILE;
+        TERMINAL, SYS_OUT, CACHED_SYS_OUT, SYS_ERR, CACHED_SYS_ERR, FILE;
     }
 
     final OutputChoiceType outputChoiceType;
@@ -33,6 +35,11 @@ public class OutputChoice {
         }
     }
 
+    OutputChoice(Terminal terminal) {
+        this.outputChoiceType = OutputChoiceType.TERMINAL;
+        this.targetPrintStream = new PrintStream(terminal.output());
+    }
+
     OutputChoice(PrintStream printStream) {
         this.outputChoiceType = OutputChoiceType.FILE;
         this.targetPrintStream = printStream;
@@ -47,6 +54,7 @@ public class OutputChoice {
         case CACHED_SYS_ERR:
         case CACHED_SYS_OUT:
         case FILE:
+        case TERMINAL:
             return targetPrintStream;
         default:
             throw new IllegalArgumentException();

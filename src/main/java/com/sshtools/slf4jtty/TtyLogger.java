@@ -48,34 +48,13 @@ public class TtyLogger extends LegacyAbstractLogger {
     protected static final int LOG_LEVEL_WARN = LocationAwareLogger.WARN_INT;
     protected static final int LOG_LEVEL_ERROR = LocationAwareLogger.ERROR_INT;
 
-    static char SP = ' ';
-    static final String TID_PREFIX = "tid=";
-
-
     // The OFF level can only be used in configuration files to disable logging.
     // It has
     // no printing method associated with it in o.s.Logger interface.
     protected static final int LOG_LEVEL_OFF = LOG_LEVEL_ERROR + 10;
 
-    private static boolean INITIALIZED = false;
-    static final TtyLoggerConfiguration CONFIG_PARAMS = new TtyLoggerConfiguration();
-    
-    static void lazyInit() {
-        if (INITIALIZED) {
-            return;
-        }
-        INITIALIZED = true;
-        init();
-    }
-
-    // external software might be invoking this method directly. Do not rename
-    // or change its semantics.
-    static void init() {
-        CONFIG_PARAMS.init();
-    }
-
     /** The current log level */
-    protected int currentLogLevel = LOG_LEVEL_INFO;
+    private final int currentLogLevel;
     /** The short name of this simple log instance */
     private transient String shortLogName = null;
 
@@ -83,31 +62,31 @@ public class TtyLogger extends LegacyAbstractLogger {
     
     private int lastWidth;
     private final Map<String, Integer> fieldWidths = new HashMap<>();
+	private final TtyLoggerConfiguration loggerConfiguration;
     
     /**
      * Package access allows only {@link TtyLoggerFactory} to instantiate
      * SimpleLogger instances.
      */
-    TtyLogger(String name) {
+    TtyLogger(String name, TtyLoggerConfiguration loggerConfiguration) {
         this.name = name;
+        this.loggerConfiguration = loggerConfiguration;
 
-        String levelString = recursivelyComputeLevelString();
-        if (levelString != null) {
-            this.currentLogLevel = TtyLoggerConfiguration.stringToLevel(levelString);
+        int levelString = recursivelyComputeLevel();
+        if (levelString != -1) {
+            this.currentLogLevel = levelString;
         } else {
-            this.currentLogLevel = CONFIG_PARAMS.defaultLogLevel;
+            this.currentLogLevel = loggerConfiguration.defaultLogLevel;
         }
-        
     }
 
-    String recursivelyComputeLevelString() {
+    int recursivelyComputeLevel() {
         String tempName = name;
-        String levelString = null;
+        int levelString = -1;
         int indexOfLastDot = tempName.length();
-        while ((levelString == null) && (indexOfLastDot > -1)) {
+        while ((levelString == -1) && (indexOfLastDot > -1)) {
             tempName = tempName.substring(0, indexOfLastDot);
-            // TODO separate configuration file (without schema) for logger configuration
-            //levelString = CONFIG_PARAMS.getStringProperty(TtyLogger.LOG_KEY_PREFIX + tempName, null);
+            levelString = loggerConfiguration.loggerLevels.getOrDefault(tempName, -1);
             indexOfLastDot = String.valueOf(tempName).lastIndexOf(".");
         }
         return levelString;
@@ -121,9 +100,9 @@ public class TtyLogger extends LegacyAbstractLogger {
      * @param t
      */
     void write(StringBuilder buf, Throwable t) {
-        PrintStream targetStream = CONFIG_PARAMS.outputChoice.getTargetPrintStream();
+        PrintStream targetStream = loggerConfiguration.outputChoice.getTargetPrintStream();
 
-        synchronized (CONFIG_PARAMS) {
+        synchronized (loggerConfiguration) {
             targetStream.println(buf.toString());
             writeThrowable(t, targetStream);
             targetStream.flush();
@@ -175,15 +154,15 @@ public class TtyLogger extends LegacyAbstractLogger {
 				nex = nex.getCause();
 			}
 
-            targetStream.print(report.toAttributedString().toAnsi(terminal()));
+            targetStream.print(report.toAttributedString().toAnsi(loggerConfiguration.forceANSI ? null : loggerConfiguration.terminal()));
         }
     }
 
     private String getFormattedDate() {
         Date now = new Date();
         String dateText;
-        synchronized (CONFIG_PARAMS.dateFormatter) {
-            dateText = CONFIG_PARAMS.dateFormatter.format(now);
+        synchronized (loggerConfiguration.dateFormatter) {
+            dateText = loggerConfiguration.dateFormatter.format(now);
         }
         return dateText;
     }
@@ -276,15 +255,15 @@ public class TtyLogger extends LegacyAbstractLogger {
 	        	this.lastWidth = width;
 	        	fieldWidths.clear();
 	        	
-	        	int total = width - (Math.max(0, CONFIG_PARAMS.layout.size() - 1) * CONFIG_PARAMS.gap);;
+	        	int total = width - (Math.max(0, loggerConfiguration.layout.size() - 1) * loggerConfiguration.gap);;
 	        	int available = total;
 	        	int autoFields = 0;
 	        	
 	        	/* First pass that sets initial size of fixed size fields, and calculates
 	        	 * remaining space for any auto fields
 	        	 */
-	        	for(String field : CONFIG_PARAMS.layout) {
-	        		int fieldWidth = CONFIG_PARAMS.fieldWidth.get(field);
+	        	for(String field : loggerConfiguration.layout) {
+	        		int fieldWidth = loggerConfiguration.fieldWidth.get(field);
         			fieldWidths.put(field, fieldWidth);
 	        		if(fieldWidth > 0) {
 	        			available -= fieldWidth;
@@ -318,89 +297,106 @@ public class TtyLogger extends LegacyAbstractLogger {
 	        		field.setValue(Math.max(1, field.getValue() - 1));
 	        	}
 	        	
-	        	System.out.println("Col widths: " + String.join(", ", fieldWidths.values().stream().map(i -> String.valueOf(i)).toList()) + " in " + total + " (" + width + ")");
-	        	System.out.println("0123456789012345678901234567890123456789012345678901234567890123456789");
+//	        	System.out.println("Col widths: " + String.join(", ", fieldWidths.values().stream().map(i -> String.valueOf(i)).toList()) + " in " + total + " (" + width + ")");
+//	        	System.out.println("0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012");
+//	        	System.out.println("          1         2         3         4         5         6         7         8         9         0         1         2         3  ");
 	       	}
 	    }
     	
     	String defaultStyle = null;
-    	if(CONFIG_PARAMS.styleAsLevel) {
-    		defaultStyle = CONFIG_PARAMS.levelStyles.get(level);
+    	if(loggerConfiguration.styleAsLevel) {
+    		defaultStyle = loggerConfiguration.levelStyles.get(level);
     	}
     	
     	AtomicInteger fieldIdx = new AtomicInteger();
-		for (String field : CONFIG_PARAMS.layout) {
+		for (String field : loggerConfiguration.layout) {
 
-
-			StringBuilder sdbuf = new StringBuilder();
-			
 			if (field.equals("date-time")) {
-				if (CONFIG_PARAMS.dateFormatter != null) {
-					appendField(defaultStyle, sdbuf, field, getFormattedDate(), fieldIdx, fieldWidths.get(field));
+				if (loggerConfiguration.dateFormatter != null) {
+					appendField(defaultStyle, buf, field, getFormattedDate(), fieldIdx, fieldWidths.get(field));
 				} else {
-					appendField(defaultStyle, sdbuf, field, String.valueOf(System.currentTimeMillis() - START_TIME), fieldIdx, fieldWidths.get(field));
+					appendField(defaultStyle, buf, field, String.valueOf(System.currentTimeMillis() - START_TIME), fieldIdx, fieldWidths.get(field));
 				}
 			}
 			else if (field.equals("thread-name")) {
-				appendField(defaultStyle, sdbuf, field, Thread.currentThread().getName(), fieldIdx, fieldWidths.get(field));				
+				appendField(defaultStyle, buf, field, Thread.currentThread().getName(), fieldIdx, fieldWidths.get(field));				
 			}
 			else if (field.equals("thread-id")) {
-				appendField(defaultStyle, sdbuf, field, String.valueOf(Thread.currentThread().getId()), fieldIdx, fieldWidths.get(field));				
+				appendField(defaultStyle, buf, field, String.valueOf(Thread.currentThread().getId()), fieldIdx, fieldWidths.get(field));				
 			}
 			else if (field.equals("level")) {
-				String levelStyle = CONFIG_PARAMS.levelStyles.get(level);
-				String levelText = CONFIG_PARAMS.levelText.get(level);
-				appendField(levelStyle, sdbuf, field, levelText, fieldIdx, fieldWidths.get(field));
+				String levelStyle = loggerConfiguration.levelStyles.get(level);
+				String levelText = loggerConfiguration.levelText.get(level);
+				appendField(levelStyle, buf, field, levelText, fieldIdx, fieldWidths.get(field));
 				
 			}
 			else if (field.equals("short-name")) {
 	            if (shortLogName == null)
 	            	shortLogName = computeShortName();
-				appendField(defaultStyle, sdbuf, field, shortLogName, fieldIdx, fieldWidths.get(field));
+				appendField(defaultStyle, buf, field, shortLogName, fieldIdx, fieldWidths.get(field));
 			}
 			else if (field.equals("name")) {
-				appendField(defaultStyle, sdbuf, field, name, fieldIdx, fieldWidths.get(field));
+				appendField(defaultStyle, buf, field, name, fieldIdx, fieldWidths.get(field));
 			}
 			else if (field.equals("message")) {
-				appendField(defaultStyle, sdbuf, field, MessageFormatter.basicArrayFormat(CONFIG_PARAMS.parameterStyle, messagePattern, arguments), fieldIdx, fieldWidths.get(field));
+				String str = MessageFormatter.basicArrayFormat(loggerConfiguration.parameterStyle, messagePattern, arguments);
+				appendField(defaultStyle, buf, field, str, fieldIdx, fieldWidths.get(field));
 			}
 			else if (field.equals("markers")) {
 				if(markers == null)
-					appendField(defaultStyle, sdbuf, field, "", fieldIdx, fieldWidths.get(field));
+					appendField(defaultStyle, buf, field, "", fieldIdx, fieldWidths.get(field));
 				else {
-					appendField(defaultStyle, sdbuf, field , String.join(",", markers.stream().map(Marker::getName).toList()), fieldIdx, fieldWidths.get(field));
+					appendField(defaultStyle, buf, field , String.join(",", markers.stream().map(Marker::getName).toList()), fieldIdx, fieldWidths.get(field));
 				}
 			}
-			
-			AttributedStringBuilder attrs = new AttributedStringBuilder();
-			StyleExpression sex = new StyleExpression();
-			sex.evaluate(attrs, sdbuf.toString());
-			buf.append(attrs.toAnsi(terminal()));
 			
 		}
 
         write(buf, t);
     }
 
-	private Terminal terminal() {
-		return TtyConfiguration.get().terminal();
-	}
-    
 	private void appendField(String defaultStyle, StringBuilder buf, String field, String value, AtomicInteger fieldIdx, int fieldWidth) {
-		if(fieldIdx.get() > 0 && CONFIG_PARAMS.gap > 0) {
-			buf.append(String.format("%" + CONFIG_PARAMS.gap + "s", ""));
+		if(fieldIdx.get() > 0 && loggerConfiguration.gap > 0) {
+			buf.append(String.format("%" + loggerConfiguration.gap + "s", ""));
 		}
 		
-		String valueStyle = CONFIG_PARAMS.fieldStyles.get(field);
-		int extras =  countOuterCharacters(field, valueStyle);
-		String valueText = padOrTrim(Math.max(1, fieldWidth - extras), value, field.equals("message"));
+		var valueStyle = loggerConfiguration.fieldStyles.get(field);
 
 		if(defaultStyle != null) {
 			valueStyle = defaultStyle.replace("${text}", valueStyle);
 		}
 
-		String ftext = valueStyle.replace("${" + field + "}", valueText);
-		buf.append(ftext);
+		var ftext = valueStyle.replace("${" + field + "}", value);
+		
+//		int extras =  countOuterCharacters(field, valueStyle);
+//		String valueText = padOrTrim(Math.max(1, fieldWidth - extras), value, field.equals("message"));
+		
+		var attrs = new AttributedStringBuilder();
+		var sex = new RecursiveStyleExpression();
+		sex.setMaxLength(fieldWidth);
+		sex.setEllipsis(loggerConfiguration.ellipsis);
+		sex.evaluate(attrs, ftext);
+		if(attrs.length() < fieldWidth) {
+			var amount = fieldWidth - attrs.length();
+			switch(loggerConfiguration.fieldAlignment.get(field)) {
+			case LEFT:
+				for(int i = 0 ; i < amount; i++) {
+					attrs.append(' ');
+				}
+				break;
+			case RIGHT:
+				for(int i = 0 ; i < amount; i++) {
+					buf.append(' ');
+				}
+				break;
+			case CENTER:
+				for(int i = 0 ; i < amount / 2; i++) {
+					buf.append(' ');
+				}
+				break;
+			}
+		}
+		buf.append(attrs.toAnsi(loggerConfiguration.forceANSI ? null : loggerConfiguration.terminal()));
 		
 		fieldIdx.incrementAndGet();
 	}
@@ -411,10 +407,14 @@ public class TtyLogger extends LegacyAbstractLogger {
 	}
     
 	private int getWidth() {
-		int width = CONFIG_PARAMS.width;
+		int width = loggerConfiguration.width;
 		if(width == 0) {
-			width = terminal().getWidth();
-			return width < 1 ? CONFIG_PARAMS.fallbackWidth : width;
+			var terminal = loggerConfiguration.terminal();
+			if(terminal == null) 
+				width = 0;
+			else
+				width = terminal.getWidth();
+			return width < 1 ? loggerConfiguration.fallbackWidth : width;
 		}
 		else {
 			return width;
@@ -459,7 +459,7 @@ public class TtyLogger extends LegacyAbstractLogger {
                 return String.format("%-" + Math.max(1, ( width - diff )) + "s", str);
     		}
     		else {
-    			return str.substring(0, Math.max(0,  width + paramChars - diff - CONFIG_PARAMS.ellipsisWidth)) + CONFIG_PARAMS.ellipsis;
+    			return str.substring(0, Math.max(0,  width + paramChars - diff - loggerConfiguration.ellipsisWidth)) + loggerConfiguration.ellipsis;
     		}
         }
     } 

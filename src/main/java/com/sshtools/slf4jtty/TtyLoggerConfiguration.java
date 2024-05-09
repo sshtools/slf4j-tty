@@ -3,7 +3,9 @@ package com.sshtools.slf4jtty;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.io.UncheckedIOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -12,10 +14,14 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 import org.slf4j.event.Level;
 import org.slf4j.helpers.Reporter;
 
+import com.sshtools.jini.Data;
 import com.sshtools.jini.INI;
 import com.sshtools.jini.INI.Section;
 import com.sshtools.jini.config.INISet;
@@ -38,6 +44,10 @@ import com.sshtools.slf4jtty.OutputChoice.OutputChoiceType;
  */
 public class TtyLoggerConfiguration {
 	
+	private final static class Default {
+		private final static TtyLoggerConfiguration DEFAULT = TtyConfigurationSet.get().build();
+	}
+	
 	public enum Alignment {
 		LEFT, CENTER, RIGHT
 	}
@@ -48,12 +58,11 @@ public class TtyLoggerConfiguration {
     DateFormat dateFormatter = null;
     OutputChoice outputChoice = null;
 
-    private INISet iniSet;
-
     final Map<String, String> fieldStyles = new HashMap<>();
     final Map<String, Alignment> fieldAlignment = new HashMap<>();
     final Map<Level, String> levelStyles = new HashMap<>();
     final Map<Level, String> levelText = new HashMap<>();
+    final Map<String, Integer> loggerLevels = new HashMap<>();
     boolean styleAsLevel;
     int gap;
     int width;
@@ -63,15 +72,23 @@ public class TtyLoggerConfiguration {
     String parameterStyle;
     String ellipsis;
     int ellipsisWidth;
-
-    void init() {
-    	
-		iniSet = TtyConfiguration.get().build();
+    boolean forceANSI;
+    
+    private Terminal terminal;
+	private final Supplier<Terminal> terminalFactory;
+    
+    public final static TtyLoggerConfiguration get() {
+    	return Default.DEFAULT;
+    }
+    
+    TtyLoggerConfiguration(INISet output, INISet loggers, Supplier<Terminal> terminalFactory) {
+    	this.terminalFactory = terminalFactory;
 
         /* Configuration ... */
         
-        INI config = iniSet.document();
+        INI config = output.document();
 		Section outputSection = config.section("output");
+		forceANSI = outputSection.getBoolean("force-ansi");
 		styleAsLevel = outputSection.getBoolean("style-as-level");
 		gap = outputSection.getInt("gap");
 		width = outputSection.getInt("width");
@@ -94,7 +111,7 @@ public class TtyLoggerConfiguration {
         	fieldWidth.put(fieldSection.key(), fieldSection.getInt("width"));
         	fieldAlignment.put(fieldSection.key(), fieldSection.getEnum(Alignment.class, "alignment"));
         	if(fieldSection.key().equals("date-time")) {
-        		TtyConfiguration.DateTimeType dateType = fieldSection.getEnum(TtyConfiguration.DateTimeType.class, "type");
+        		TtyConfigurationSet.DateTimeType dateType = fieldSection.getEnum(TtyConfigurationSet.DateTimeType.class, "type");
         		String dateFormatStr = fieldSection.get("format");
         		if(dateFormatStr.equals("SHORT")) {
         			switch(dateType) {
@@ -160,7 +177,7 @@ public class TtyLoggerConfiguration {
 
 		Section logSection = config.section("log");
 		if(logSection.getBoolean("enabled")) {
-			defaultLogLevel = stringToLevel(logSection.getEnum(Level.class, "default-level").name());
+			defaultLogLevel = stringToLevel(System.getProperty("org.slf4j.simpleLogger.defaultLogLevel", logSection.getEnum(Level.class, "default-level").name()));
 		}
 		else {
 			defaultLogLevel = TtyLogger.LOG_LEVEL_OFF;
@@ -170,9 +187,36 @@ public class TtyLoggerConfiguration {
         if(logFile.startsWith("~/") || logFile.startsWith("~\\"))
             logFile = System.getProperty("user.home") + logFile.substring(1);
 
-        outputChoice = computeOutputChoice(logFile, logSection.getEnum(OutputChoiceType.class, "output"));
+        outputChoice = computeOutputChoice(logFile, logSection.getEnum(OutputChoiceType.class, "output"), () -> terminal());
 
+        addLoggers(loggers.document());
     }
+    
+    void addLoggers(Data data) {
+    	data.sections().values().forEach(sections -> {
+    		for(var sec : sections) { 
+    			var lvl = sec.get("level", "");
+    			if(!lvl.equals("")) {
+    				loggerLevels.put(String.join(".", sec.path()), stringToLevel(lvl));
+    			}
+    		}
+    	});
+    }
+	
+	Terminal terminal() {
+		if(terminal == null) {
+			if(terminalFactory == null)
+				try {
+					return terminal = TerminalBuilder.terminal();
+				} catch (IOException e) {
+					throw new UncheckedIOException(e);
+				}
+			else
+				return terminal = terminalFactory.get();
+		}
+		else
+			return terminal;
+	}
 
     static int stringToLevel(String levelStr) {
         if ("trace".equalsIgnoreCase(levelStr)) {
@@ -192,8 +236,10 @@ public class TtyLoggerConfiguration {
         return TtyLogger.LOG_LEVEL_INFO;
     }
 
-    private static OutputChoice computeOutputChoice(String logFile, OutputChoiceType outputChoiceType) {
+    private static OutputChoice computeOutputChoice(String logFile, OutputChoiceType outputChoiceType, Supplier<Terminal> terminal) {
     	switch(outputChoiceType) {
+    	case TERMINAL:
+    		return new OutputChoice(terminal.get());
     	case FILE:
     		try {
                 File logFileObj = new File(logFile);
