@@ -28,7 +28,7 @@ SLF4J-TTY is in Maven central, so simply add the dependency to your project.
 <dependency>
     <groupId>com.sshtools</groupId>
     <artifactId>slf4j-tty</artifactId>
-    <version>0.0.2</version>
+    <version>0.0.3</version>
 </dependency>
 ```
 
