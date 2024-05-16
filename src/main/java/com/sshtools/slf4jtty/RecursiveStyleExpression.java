@@ -70,7 +70,7 @@ public class RecursiveStyleExpression {
         requireNonNull(buff);
         requireNonNull(expression);
         
-        // 
+     // 
         var chars = expression.toCharArray();
         
         @Deprecated /* Maybe */
@@ -143,10 +143,12 @@ public class RecursiveStyleExpression {
 	        	}
 	        	else if(ch == '}' && !stack.isEmpty()) {
 	        		stack.pop();
-	        		if(!stack.isEmpty()) {
+	        		if(stack.isEmpty()) {
+	        			buff.style(AttributedStyle.DEFAULT);
+	        		}
+	        		else {
 	                    var styleStr = String.join(",", stack);
 						var style = resolver.resolve(styleStr);
-	                    stack.push(styleStr);
 	                    buff.style(style);
 	        		}
 	        	}

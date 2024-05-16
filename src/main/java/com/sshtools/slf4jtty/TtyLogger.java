@@ -419,12 +419,17 @@ public class TtyLogger extends LegacyAbstractLogger {
 	private int getWidth() {
 		int width = loggerConfiguration.width;
 		if(width == 0) {
-			var terminal = loggerConfiguration.terminal();
-			if(terminal == null) 
-				width = 0;
-			else
-				width = terminal.getWidth();
-			return width < 1 ? loggerConfiguration.fallbackWidth : width;
+			try {
+				var terminal = loggerConfiguration.terminal();
+				if(terminal == null) 
+					width = 0;
+				else
+					width = terminal.getWidth();
+				return width < 1 ? loggerConfiguration.fallbackWidth : width;
+			}
+			catch(Exception e) {
+				return loggerConfiguration.fallbackWidth;
+			}
 		}
 		else {
 			return width;

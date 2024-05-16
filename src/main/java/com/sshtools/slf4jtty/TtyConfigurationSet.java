@@ -34,6 +34,7 @@ public final class TtyConfigurationSet {
     	bldr =  new INISet.Builder("output").
 				withApp("slf4j-tty").
 				withSchema(TtyConfigurationSet.class, "TtyConfiguration.schema.ini").
+				withOptionalDefault(TtyConfigurationSet.class, "/slf4jtty.ini").
 				withMonitor(new Monitor());
 
 		loggersBldr =  new INISet.Builder("loggers").
