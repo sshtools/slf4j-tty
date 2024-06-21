@@ -6,6 +6,8 @@ import java.util.concurrent.ConcurrentMap;
 import org.slf4j.ILoggerFactory;
 import org.slf4j.Logger;
 
+import com.sshtools.slf4jtty.TtyLoggerConfiguration.Format;
+
 /**
  * An implementation of {@link ILoggerFactory} which always returns
  * {@link TtyLogger} instances.
@@ -30,7 +32,8 @@ public class TtyLoggerFactory implements ILoggerFactory {
         if (simpleLogger != null) {
             return simpleLogger;
         } else {
-            Logger newInstance = new TtyLogger(name, TtyLoggerConfiguration.get());
+            TtyLoggerConfiguration cfg = TtyLoggerConfiguration.get();
+			Logger newInstance = cfg.format == Format.JSON ? new JsonLogger(name, cfg) :  new TtyLogger(name, cfg);
             Logger oldInstance = loggerMap.putIfAbsent(name, newInstance);
             return oldInstance == null ? newInstance : oldInstance;
         }

@@ -1,8 +1,6 @@
 package com.sshtools.slf4jtty;
 
 import java.io.PrintStream;
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -10,17 +8,12 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jline.style.StyleExpression;
-import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.slf4j.Logger;
 import org.slf4j.Marker;
 import org.slf4j.event.Level;
-import org.slf4j.event.LoggingEvent;
-import org.slf4j.helpers.LegacyAbstractLogger;
-import org.slf4j.helpers.NormalizedParameters;
-import org.slf4j.spi.LocationAwareLogger;
 
 import com.sshtools.slf4jtty.TtyLoggerConfiguration.Alignment;
 
@@ -38,80 +31,20 @@ import com.sshtools.slf4jtty.TtyLoggerConfiguration.Alignment;
  * <p>
  * TtyLogger and associated classes are based on SimpleLogger implementation to varying degrees.
  */
-public class TtyLogger extends LegacyAbstractLogger {
+public class TtyLogger extends AbstractLogger {
 
-    private static final long serialVersionUID = -632788891211436180L;
-
-    private static final long START_TIME = System.currentTimeMillis();
-
-    protected static final int LOG_LEVEL_TRACE = LocationAwareLogger.TRACE_INT;
-    protected static final int LOG_LEVEL_DEBUG = LocationAwareLogger.DEBUG_INT;
-    protected static final int LOG_LEVEL_INFO = LocationAwareLogger.INFO_INT;
-    protected static final int LOG_LEVEL_WARN = LocationAwareLogger.WARN_INT;
-    protected static final int LOG_LEVEL_ERROR = LocationAwareLogger.ERROR_INT;
-
-    // The OFF level can only be used in configuration files to disable logging.
-    // It has
-    // no printing method associated with it in o.s.Logger interface.
-    protected static final int LOG_LEVEL_OFF = LOG_LEVEL_ERROR + 10;
-
-    /** The current log level */
-    private final int currentLogLevel;
-    /** The short name of this simple log instance */
-    private transient String shortLogName = null;
-
-    private static ThreadLocal<Boolean> reentrant = new ThreadLocal<>();
-    
     private int lastWidth;
     private final Map<String, Integer> fieldWidths = new HashMap<>();
-	private final TtyLoggerConfiguration loggerConfiguration;
     
     /**
      * Package access allows only {@link TtyLoggerFactory} to instantiate
      * SimpleLogger instances.
      */
     TtyLogger(String name, TtyLoggerConfiguration loggerConfiguration) {
-        this.name = name;
-        this.loggerConfiguration = loggerConfiguration;
-
-        int levelString = recursivelyComputeLevel();
-        if (levelString != -1) {
-            this.currentLogLevel = levelString;
-        } else {
-            this.currentLogLevel = loggerConfiguration.defaultLogLevel;
-        }
+    	super(name, loggerConfiguration);
     }
 
-    int recursivelyComputeLevel() {
-        String tempName = name;
-        int levelString = -1;
-        int indexOfLastDot = tempName.length();
-        while ((levelString == -1) && (indexOfLastDot > -1)) {
-            tempName = tempName.substring(0, indexOfLastDot);
-            levelString = loggerConfiguration.loggerLevels.getOrDefault(tempName, -1);
-            indexOfLastDot = String.valueOf(tempName).lastIndexOf(".");
-        }
-        return levelString;
-    }
-
-    /**
-     * To avoid intermingling of log messages and associated stack traces, the two
-     * operations are done in a synchronized block.
-     * 
-     * @param buf
-     * @param t
-     */
-    void write(StringBuilder buf, Throwable t) {
-        PrintStream targetStream = loggerConfiguration.outputChoice.getTargetPrintStream();
-
-        synchronized (loggerConfiguration) {
-            targetStream.println(buf.toString());
-            writeThrowable(t, targetStream);
-            targetStream.flush();
-        } 
-
-    }
-
+    @Override
     protected void writeThrowable(Throwable t, PrintStream targetStream) {
         if (t != null) {
         	/* TODO configurable exception printing colors */
@@ -121,11 +54,11 @@ public class TtyLogger extends LegacyAbstractLogger {
 			while(nex != null) {
 				if(indent > 0) {
 					report.append(String.format("%" + ( 8 + ((indent - 1 )* 2) ) + "s", ""));
-					report.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.RED).bold());
-			        report.append(nex.getClass().getName() + ": " + nex.getMessage() == null ? "No message." : nex.getMessage());
-			        report.style(AttributedStyle.DEFAULT);
-					report.append(System.lineSeparator());
 				}
+				report.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.RED).bold());
+		        report.append(nex.getClass().getName() + ": " + nex.getMessage() == null ? "No message." : nex.getMessage());
+		        report.style(AttributedStyle.DEFAULT);
+				report.append(System.lineSeparator());
 				
 				for(var el : nex.getStackTrace()) {
 					report.append(String.format("%" + ( 8 + (indent * 2) ) + "s", ""));
@@ -156,99 +89,23 @@ public class TtyLogger extends LegacyAbstractLogger {
 				nex = nex.getCause();
 			}
 
-            targetStream.print(report.toAttributedString().toAnsi(loggerConfiguration.forceANSI ? null : loggerConfiguration.terminal()));
+			switch(loggerConfiguration.format) {
+			case AUTO:
+	            targetStream.print(report.toAttributedString().toAnsi(loggerConfiguration.terminal()));
+	            break;
+			case ANSI:
+	            targetStream.print(report.toAttributedString().toAnsi(null));
+	            break;
+			case PLAIN:
+	            targetStream.print(report.toAttributedString().toString());
+	            break;
+	        default:
+	        	throw new UnsupportedOperationException();
+			}
         }
     }
 
-    private String getFormattedDate() {
-        Date now = new Date();
-        String dateText;
-        synchronized (loggerConfiguration.dateFormatter) {
-            dateText = loggerConfiguration.dateFormatter.format(now);
-        }
-        return dateText;
-    }
-
-    private String computeShortName() {
-        return name.substring(name.lastIndexOf(".") + 1);
-    }
-
-    /**
-     * Is the given log level currently enabled?
-     *
-     * @param logLevel is this level enabled?
-     * @return whether the logger is enabled for the given level
-     */
-    protected boolean isLevelEnabled(int logLevel) {
-        // log level are numerically ordered so can use simple numeric
-        // comparison
-        return (logLevel >= currentLogLevel);
-    }
-
-    /** Are {@code trace} messages currently enabled? */
-    public boolean isTraceEnabled() {
-        return isLevelEnabled(LOG_LEVEL_TRACE);
-    }
-
-    /** Are {@code debug} messages currently enabled? */
-    public boolean isDebugEnabled() {
-        return isLevelEnabled(LOG_LEVEL_DEBUG);
-    }
-
-    /** Are {@code info} messages currently enabled? */
-    public boolean isInfoEnabled() {
-        return isLevelEnabled(LOG_LEVEL_INFO);
-    }
-
-    /** Are {@code warn} messages currently enabled? */
-    public boolean isWarnEnabled() {
-        return isLevelEnabled(LOG_LEVEL_WARN);
-    }
-
-    /** Are {@code error} messages currently enabled? */
-    public boolean isErrorEnabled() {
-        return isLevelEnabled(LOG_LEVEL_ERROR);
-    }
-
-    /**
-     * SimpleLogger's implementation of
-     * {@link org.slf4j.helpers.AbstractLogger#handleNormalizedLoggingCall(Level, Marker, String, Object[], Throwable) AbstractLogger#handleNormalizedLoggingCall}
-     * }
-     *
-     * @param level the SLF4J level for this event
-     * @param marker  The marker to be used for this event, may be null.
-     * @param messagePattern The message pattern which will be parsed and formatted
-     * @param arguments  the array of arguments to be formatted, may be null
-     * @param throwable  The exception whose stack trace should be logged, may be null
-     */
-    @Override
-    protected void handleNormalizedLoggingCall(Level level, Marker marker, String messagePattern, Object[] arguments, Throwable throwable) {
-    	/* JLine uses SLF4J for logging, which we may trigger by using it to style our text! Avoid
-    	 * re-entering.
-    	 */
-    	Boolean reentered = reentrant.get();
-    	if(Boolean.TRUE.equals(reentered)) {
-    		return;
-    	}
-    	
-    	try {
-    		reentrant.set(true);
-    		
-	        List<Marker> markers = null;
-	
-	        if (marker != null) {
-	            markers = new ArrayList<>();
-	            markers.add(marker);
-	        }
-	
-	        innerHandleNormalizedLoggingCall(level, markers, messagePattern, arguments, throwable);
-    	}
-    	finally {
-    		reentrant.remove();
-    	}
-    }
-
-    private void innerHandleNormalizedLoggingCall(Level level, List<Marker> markers, String messagePattern, Object[] arguments, Throwable t) {
+    protected void innerHandleNormalizedLoggingCall(Level level, List<Marker> markers, String messagePattern, Object[] arguments, Throwable t) {
 
         StringBuilder buf = new StringBuilder(32);
     	synchronized(fieldWidths) {
@@ -404,18 +261,29 @@ public class TtyLogger extends LegacyAbstractLogger {
 		}
 		
 		var decorated = new AttributedStringBuilder();
-		var trm = loggerConfiguration.forceANSI ? null : loggerConfiguration.terminal();
-		decorated.appendAnsi(decoration.replace("${" + field + "}", attrs.toAnsi(trm)));
-		buf.append(decorated.toAnsi(trm));
+		
+
+
+		switch(loggerConfiguration.format) {
+		case AUTO:
+			decorated.appendAnsi(decoration.replace("${" + field + "}", attrs.toAnsi(loggerConfiguration.terminal())));
+			buf.append(decorated.toAnsi(loggerConfiguration.terminal()));
+            break;
+		case ANSI:
+			decorated.appendAnsi(decoration.replace("${" + field + "}", attrs.toAnsi(null)));
+			buf.append(decorated.toAnsi(null));
+            break;
+		case PLAIN:
+			decorated.appendAnsi(decoration.replace("${" + field + "}", attrs.toString()));
+			buf.append(decorated.toString());
+            break;
+        default:
+        	throw new UnsupportedOperationException();
+		}
 		
 		fieldIdx.incrementAndGet();
 	}
 	
-	private int countOuterCharacters(String field, String str) {
-		StyleExpression expr = new StyleExpression();
-		return WCWidth.mk_wcswidth(expr.evaluate(str.replace("${" + field + "}", "")).toString());
-	}
-    
 	private int getWidth() {
 		int width = loggerConfiguration.width;
 		if(width == 0) {
@@ -435,23 +303,6 @@ public class TtyLogger extends LegacyAbstractLogger {
 			return width;
 		}
 	}
-
-    public void log(LoggingEvent event) {
-        int levelInt = event.getLevel().toInt();
-
-        if (!isLevelEnabled(levelInt)) {
-            return;
-        }
-
-        NormalizedParameters np = NormalizedParameters.normalize(event);
-
-        innerHandleNormalizedLoggingCall(event.getLevel(), event.getMarkers(), np.getMessage(), np.getArguments(), event.getThrowable());
-    }
-
-    @Override
-    protected String getFullyQualifiedCallerName() {
-        return null;
-    }
 
     String padOrTrim(int width, String str, boolean valueHasStyles) {
         if(width == 0)

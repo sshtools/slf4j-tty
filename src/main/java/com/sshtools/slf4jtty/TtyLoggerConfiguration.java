@@ -51,6 +51,10 @@ public class TtyLoggerConfiguration {
 	public enum Alignment {
 		LEFT, CENTER, RIGHT
 	}
+	
+	public enum Format {
+		AUTO, ANSI, PLAIN, JSON
+	}
 
     static int DEFAULT_LOG_LEVEL_DEFAULT = TtyLogger.LOG_LEVEL_INFO;
     int defaultLogLevel = DEFAULT_LOG_LEVEL_DEFAULT;
@@ -73,7 +77,7 @@ public class TtyLoggerConfiguration {
     String parameterStyle;
     String ellipsis;
     int ellipsisWidth;
-    boolean forceANSI;
+    Format format;
     
     private Terminal terminal;
 	private final Supplier<Terminal> terminalFactory;
@@ -89,7 +93,7 @@ public class TtyLoggerConfiguration {
         
         INI config = output.document();
 		Section outputSection = config.section("output");
-		forceANSI = outputSection.getBoolean("force-ansi");
+		format = outputSection.getEnum(Format.class, "format");
 		styleAsLevel = outputSection.getBoolean("style-as-level");
 		gap = outputSection.getInt("gap");
 		width = outputSection.getInt("width");

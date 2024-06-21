@@ -280,7 +280,10 @@ final public class MessageFormatter {
     private static void safeObjectAppend(String parameterStyle, StringBuilder sbuf, Object o) {
         try {
             String oAsString = o.toString();
-            sbuf.append(parameterStyle.replace("${parameter}", oAsString));
+            if(parameterStyle == null)
+                sbuf.append(oAsString);
+            else
+            	sbuf.append(parameterStyle.replace("${parameter}", oAsString));
         } catch (Throwable t) {
             Reporter.error("Failed toString() invocation on an object of type [" + o.getClass().getName() + "]", t);
             sbuf.append("[FAILED toString()]");

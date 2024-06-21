@@ -94,8 +94,8 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<release>21</release>
-					<testRelease>21</testRelease>
+					<release>17</release>
+					<testRelease>17</testRelease>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>uk.co.bithatch</groupId>
@@ -309,7 +309,7 @@
 		<dependency>
 			<groupId>com.sshtools</groupId>
 			<artifactId>jini-config</artifactId>
-			<version>0.3.2-SNAPSHOT</version>
+			<version>0.3.3-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.jline</groupId>

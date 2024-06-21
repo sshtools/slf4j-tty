@@ -12,6 +12,8 @@ import org.jline.utils.AttributedStyle;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import com.sshtools.slf4jtty.TtyLoggerConfiguration.Format;
+
 public class TtyLoggerTest {
 	
 	final static String ESC = String.valueOf((char)27);
@@ -24,7 +26,7 @@ public class TtyLoggerTest {
 			TtyConfigurationSet set = new TtyConfigurationSet();
 			
 			cfg = set.build();
-			cfg.forceANSI = true;
+			cfg.format = Format.ANSI;
 			cfg.outputChoice = new OutputChoice(new PrintStream(buf));
 			cfg.width = 132;
 			
@@ -61,6 +63,18 @@ public class TtyLoggerTest {
 		
 		Assertions.assertEquals(
 				"[34m[ℹ️ INFO] [0m [34;1mTEST[22m           [0m [34mA Parameterised test. Parm 1: [1mValue 1[22m, Parm2: [1mValue 2[22m, Other                                             [0m\n",
+				lo.bufferText());
+	}
+	
+	@Test
+	public void testExceedWidth() {
+		var lo = new LogOutput("date-time", "thread-name");
+		var logger = lo.logger("TEST");
+		logger.info("123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890");
+		System.out.println(lo.bufferText());
+		
+		Assertions.assertEquals(
+				"[[34mℹ️ INFO[0m  ] [34;1mTEST[0m            [34m12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234…[0m\n",
 				lo.bufferText());
 	}
 

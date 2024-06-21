@@ -12,6 +12,11 @@ Requires any modern terminal that has ANSI color and emoticon support.
 
 ![SLF4J-TTY](src/web/screenshot.png)
 
+## Who Is This For?
+
+ * You have a console application that uses SL4F4J and you want pretty output
+ * You have a console application that pipes logged output to another application and you want to capture simple log output in a consistent manner.
+
 ## Features
 
  * Flexible configuration based on INI files.
@@ -19,6 +24,8 @@ Requires any modern terminal that has ANSI color and emoticon support.
  * Style a log event according to log priority level.
  * Style and decorate any field with color, styles and emoticons.
  * Highlight parameters in parameterized log events.
+ * Output resizes automatically with terminal
+ * JSON output option
  
 ## Usage
 
