@@ -50,7 +50,7 @@ public class TtyLoggerTest {
 		var logger = lo.logger("TEST");
 		logger.info("Basic Test 1");
 		Assertions.assertEquals(
-				"[34m[ℹ️ INFO] [0m [34;1mTEST[22m           [0m [34mBasic Test 1                                                                                             [0m\n",
+				"[[34mℹ️ INFO[0m  ] [34;1mTEST[0m            [34mBasic Test 1[0m                                                                                             \n",
 				lo.bufferText());
 	}
 	
@@ -59,10 +59,9 @@ public class TtyLoggerTest {
 		var lo = new LogOutput("date-time", "thread-name");
 		var logger = lo.logger("TEST");
 		logger.info("A Parameterised test. Parm 1: {}, Parm2: {}, Other", "Value 1", "Value 2");
-		System.out.println(lo.bufferText());
 		
 		Assertions.assertEquals(
-				"[34m[ℹ️ INFO] [0m [34;1mTEST[22m           [0m [34mA Parameterised test. Parm 1: [1mValue 1[22m, Parm2: [1mValue 2[22m, Other                                             [0m\n",
+				"[[34mℹ️ INFO[0m  ] [34;1mTEST[0m            [34mA Parameterised test. Parm 1: [1mValue 1[22m, Parm2: [1mValue 2[22m, Other[0m                                             \n",
 				lo.bufferText());
 	}
 	
@@ -71,7 +70,6 @@ public class TtyLoggerTest {
 		var lo = new LogOutput("date-time", "thread-name");
 		var logger = lo.logger("TEST");
 		logger.info("123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890");
-		System.out.println(lo.bufferText());
 		
 		Assertions.assertEquals(
 				"[[34mℹ️ INFO[0m  ] [34;1mTEST[0m            [34m12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234…[0m\n",
@@ -82,7 +80,6 @@ public class TtyLoggerTest {
     public void evaluateExpressionWithRecursiveReplacements() {
     	StyleExpression underTest = new StyleExpression();
         AttributedString result = underTest.evaluate("@{underline foo @{fg:cyan bar}}");
-        System.out.println(result.toAnsi());
         assert result.equals(new AttributedStringBuilder()
                 .append("foo ", AttributedStyle.DEFAULT.underline())
                 .append("bar", AttributedStyle.DEFAULT.underline().foreground(AttributedStyle.CYAN))
@@ -93,7 +90,6 @@ public class TtyLoggerTest {
     public void evaluateExpressionWithRecursiveReplacementsWithTail() {
     	RecursiveStyleExpression underTest = new RecursiveStyleExpression();
         AttributedString result = underTest.evaluate("@{underline foo @{fg:cyan bar} and underline}");
-        System.out.println(result.toAnsi());
         assert result.equals(new AttributedStringBuilder()
                 .append("foo ", AttributedStyle.DEFAULT.underline())
                 .append("bar", AttributedStyle.DEFAULT.underline().foreground(AttributedStyle.CYAN))
