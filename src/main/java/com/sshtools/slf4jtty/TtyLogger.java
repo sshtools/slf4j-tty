@@ -31,6 +31,7 @@ import com.sshtools.slf4jtty.TtyLoggerConfiguration.Alignment;
  * <p>
  * TtyLogger and associated classes are based on SimpleLogger implementation to varying degrees.
  */
+@SuppressWarnings("serial")
 public class TtyLogger extends AbstractLogger {
 
     private int lastWidth;

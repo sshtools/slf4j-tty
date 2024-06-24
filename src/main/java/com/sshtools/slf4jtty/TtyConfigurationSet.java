@@ -29,17 +29,20 @@ public final class TtyConfigurationSet {
 	private Supplier<Terminal> terminalFactory;
 	private TtyLoggerConfiguration configuration;
 	
-	
 	TtyConfigurationSet() {
-    	bldr =  new INISet.Builder("output").
+		
+    	var mtr = new Monitor();
+    	
+		bldr =  new INISet.Builder("output").
 				withApp("slf4j-tty").
 				withSchema(TtyConfigurationSet.class, "TtyConfiguration.schema.ini").
-				withOptionalDefault(TtyConfigurationSet.class, "/slf4jtty.ini").
-				withMonitor(new Monitor());
+				withOptionalDefault(TtyConfigurationSet.class, "/slf4j-tty.ini").
+				withMonitor(mtr);
 
 		loggersBldr =  new INISet.Builder("loggers").
 				withApp("slf4j-tty").
-				withMonitor(new Monitor());
+				withOptionalDefault(TtyConfigurationSet.class, "/slf4j-tty-loggers.ini").
+				withMonitor(mtr);
 	}
 	
 	public void terminalFactory(Supplier<Terminal> terminalFactory) {
@@ -53,6 +56,12 @@ public final class TtyConfigurationSet {
 		if(configuration  != null)
 			throw new IllegalStateException("Cannot get after configuration has been built.");
 		return bldr;
+	}
+	
+	public INISet.Builder loggersBuilder() {
+		if(configuration  != null)
+			throw new IllegalStateException("Cannot get after configuration has been built.");
+		return loggersBldr;
 	}
 	
 	TtyLoggerConfiguration build() {

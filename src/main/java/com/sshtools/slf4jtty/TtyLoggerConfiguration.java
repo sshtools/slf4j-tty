@@ -205,6 +205,7 @@ public class TtyLoggerConfiguration {
     			if(!lvl.equals("")) {
     				loggerLevels.put(String.join(".", sec.path()), stringToLevel(lvl));
     			}
+    			addLoggers(sec);
     		}
     	});
     }
