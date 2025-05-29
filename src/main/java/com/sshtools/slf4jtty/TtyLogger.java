@@ -123,6 +123,10 @@ public class TtyLogger extends AbstractLogger {
 	        	 * remaining space for any auto fields
 	        	 */
 	        	for(String field : loggerConfiguration.layout) {
+	        		if(!loggerConfiguration.fieldWidth.containsKey(field)) {
+	        			System.err.println("XXXXX " + field + " is not in config");
+	        			continue;
+	        		}
 	        		int fieldWidth = loggerConfiguration.fieldWidth.get(field);
         			fieldWidths.put(field, fieldWidth);
 	        		if(fieldWidth > 0) {
